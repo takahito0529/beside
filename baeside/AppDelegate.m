@@ -14,9 +14,20 @@
 
 @implementation AppDelegate
 
+ViewController *vc;
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-    // Override point for customization after application launch.
+    NSLog(@"didFinishLaunchingWithOptions");
+
+    // 通知タイプ
+    UIUserNotificationType userNotificationType =  UIUserNotificationTypeBadge | UIUserNotificationTypeSound | UIUserNotificationTypeAlert;
+    
+    // 通知設定
+    UIUserNotificationSettings *userNotificationSettings = [UIUserNotificationSettings settingsForTypes:userNotificationType categories:nil];
+    
+    // 通知設定を登録
+    [application registerUserNotificationSettings:userNotificationSettings];
+    
     return YES;
 }
 
@@ -122,6 +133,60 @@
             abort();
         }
     }
+}
+
+- (void)application:(UIApplication *)application didRegisterUserNotificationSettings:(UIUserNotificationSettings *)notificationSettings{
+    // registerUserNotificationSettingsで呼ばれる
+    
+    // 登録処理コール
+    [application registerForRemoteNotifications];
+}
+
+- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken{
+    NSLog(@"didRegisterForRemoteNotificationsWithDeviceToken");
+    
+    // "<" と ">" を除去
+    NSString *sDeviceToken = [[deviceToken description] stringByTrimmingCharactersInSet:[NSCharacterSet characterSetWithCharactersInString:@"<>"]];
+    
+    // " " を除去
+    sDeviceToken = [sDeviceToken stringByReplacingOccurrencesOfString:@" " withString:@""];
+    
+    // デバイストークンをサーバに送信
+    [self sendToken:sDeviceToken];
+    self.deviceToken = sDeviceToken;
+    
+    // 画面表示更新
+    if(vc != nil){
+        [vc updateDiviceToken:sDeviceToken];
+    }else{
+        NSLog(@"ViewController is null");
+    }
+}
+
+- (void)setViewController:(UIViewController*)view{
+    vc = (ViewController*)view;
+}
+
+- (void)application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error{
+    NSLog(@"error: %@", error);
+}
+
+- (void)sendToken:(NSString *)sToken
+{
+    NSLog(@"sendProviderDeviceToken");
+    
+    // デバイス登録CGIを呼び出す
+    NSMutableURLRequest *request = [NSMutableURLRequest
+                                    requestWithURL:[NSURL URLWithString:@"https://lab1.plusisys.com/baeside/index.cgi"]];
+    [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
+    [request setValue:@"application/json" forHTTPHeaderField:@"Accept"];
+    // POST
+    [request setHTTPMethod:@"POST"];
+    
+    sToken = [NSString stringWithFormat:@"DeviceToken=%@", sToken];
+    NSData *data = [sToken dataUsingEncoding:NSUTF8StringEncoding];
+    [request setHTTPBody:data];
+    [NSURLConnection connectionWithRequest:request delegate:self];
 }
 
 @end

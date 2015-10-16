@@ -7,8 +7,13 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "AppDelegate.h"
 
 @interface ViewController : UIViewController
+
+@property (weak, nonatomic) IBOutlet UITextView *txtDeviceToken;
+
+- (void)updateDiviceToken:(NSString*)deviceToken;
 
 
 @end
